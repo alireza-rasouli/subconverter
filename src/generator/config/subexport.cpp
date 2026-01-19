@@ -1055,6 +1055,13 @@ std::string proxyToSurge(std::vector<Proxy> &nodes, const std::string &base_conf
                 } else if (!host.empty()) {
                     proxy += ", sni=" + host;
                 }
+                if (transproto == "ws") {
+                    proxy += ", ws=true, ws-path=" + path;
+                    if (!host.empty())
+                        headers.push_back("Host:\"" + host + "\"");
+                    if (!headers.empty())
+                        proxy += ", ws-headers=" + join(headers, "|");
+                }
                 if (!scv.is_undef())
                     proxy += ", skip-cert-verify=" + scv.get_str();
                 break;
@@ -2243,6 +2250,8 @@ proxyToLoon(std::vector<Proxy> &nodes, const std::string &base_conf,
 
                 proxy = "vmess," + hostname + "," + port + "," + method + ",\"" + id + "\",over-tls=" +
                         (tlssecure ? "true" : "false");
+                if (!sni.empty())
+                    host = sni;
                 if (tlssecure)
                     proxy += ",tls-name=" + host;
                 switch (hash_(transproto)) {
@@ -2306,6 +2315,16 @@ proxyToLoon(std::vector<Proxy> &nodes, const std::string &base_conf,
                 proxy = "trojan," + hostname + "," + port + ",\"" + password + "\"";
                 if (!host.empty())
                     proxy += ",tls-name=" + host;
+                switch (hash_(transproto)) {
+                    case "tcp"_hash:
+                        proxy += ",transport=tcp";
+                        break;
+                    case "ws"_hash:
+                        proxy += ",transport=ws,path=" + path + ",host=" + host;
+                        break;
+                    default:
+                        continue;
+                }
                 if (!scv.is_undef())
                     proxy += ",skip-cert-verify=" + std::string(scv.get() ? "true" : "false");
                 break;
